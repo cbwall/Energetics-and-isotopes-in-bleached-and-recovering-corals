@@ -1,4 +1,6 @@
 # Energetics and isotopes in bleached and recovering corals
+This project assessed the energetic and isotopic changes in bleached and non-bleached colonies of two Hawaiian reef coral species at three reef sites in Kāne'ohe Bay, Hawai'i, following a rare archipelagic bleaching event in 2014 and the subsequent recovery from bleaching in January 2015.
+
 
 ## Files and Folders
 - Bleach.Recovery.Isotope.Rproj -- the R project in Rstudio
