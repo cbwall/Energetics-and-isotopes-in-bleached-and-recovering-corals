@@ -1,14 +1,14 @@
-## Energetics and isotopes in bleached and recovering corals
+# Energetics and isotopes in bleached and recovering corals
 
-### Files and Folders
+## Files and Folders
 - Bleach.Recovery.Isotope.Rproj -- the R project in Rstudio
 - Wall et al.LnOmarkdown.Rmd -- the codes and script in Rmarkdown file
 
-#### data
+### data
 - Biological responses_BNB.final -- the biological properties of all corals
-##### coastn83.shp 
+#### coastn83.shp 
 - shape files to generate map
-##### environmental
+#### environmental
 - abiotic data
      - KBay_temp_1612480_20140601-20150228_phys.csv -- weather station temperature data
      - light_reef44_2014.csv -- 2014 light at Reef 44
@@ -24,7 +24,7 @@
      - temp_reefHIMB_2014.csv -- 2014 temperature at HIMB
      - temp_reefHIMB_2015.csv -- 2015 temperature at HIMB
       
-#### figures
+### figures
 These figures are exports from Rmarkdown (Fig 1, 3) and images of bleached and non-bleached corals (Fig 2)
 - Fig.S1.Temp.PAR.pdf -- light, temp at weather station at reefs
 - Fig1bc.corals.png -- bleached and non-bleached corals
