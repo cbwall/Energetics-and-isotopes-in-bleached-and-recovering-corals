@@ -1,17 +1,17 @@
 ---
 title: Spatial variation in the biochemical and isotopic composition of corals during
   bleaching and recovery
-author: "CB Wall, R Ritson-Williams, BN Popp, RD Gates (in review, Limnology and Oceanography)"
-date: "9/07/2018"
+author: "CB Wall, R Ritson-Williams, BN Popp, RD Gates (Limnology and Oceanography)"
+date: "January 2019"
 output:
-  pdf_document:
-    toc: yes
-    toc_depth: '4'
   html_document:
     code_folding: hide
     toc: yes
     toc_depth: 4
     toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '4'
 ---
 ```{r setup, include = FALSE, cache = FALSE}
 require("knitr")
@@ -29,11 +29,11 @@ library('vegan')
 library("gplots")
 library("plotrix")
 library("psych")
-library("grid")
 library("gridExtra")
 library("scales")
 library("MuMIn")
 library("lsmeans")
+library("emmeans")
 library("effects")
 library("reshape2")
 library("dplyr")
@@ -54,10 +54,11 @@ library("RVAideMemoire")
 ## Synopsis  
 Ocean warming threatens coral reef ecosystems by disrupting the coral-alga symbiosis and causing coral bleaching. We examined bleaching (October 2014) and 3-months post bleaching recovery (Janurary 2015) in *Montipora capitata* and *Porites compressa* that either bleached or did not bleach during a 2014 bleaching event at three reef locations (*HIMB, Reef 25, Reef 44*) in Kāne‘ohe Bay, O‘ahu, spanning a latitudinal (north-south) gradient of oceanic input and seawater residence.  
     
-We measured changes in total biomass (ash-free dry weight) and biomass composition (proteins, lipids, carbohydrates), photopigments (total chlorophylls (*a+c~2~*)), and nutritional modes as inferred from stable isotopes (δ^13^C, δ^15^N) of the coral host and its endosymbionts *Symbiodinium*.  
-  
+We measured changes in total biomass (ash-free dry weight) and biomass composition (proteins, lipids, carbohydrates), photopigments (total chlorophylls (*a+c~2~*)), and nutritional modes as inferred from stable isotopes (δ^13^C, δ^15^N) of the coral host and its endosymbionts *Symbiodiniaceae*.  
+
 ```{r Mapsetup, results="hide"}
-# attach map GPS data
+# attach map GPS data shape files--can be used in one of many plotting approaches
+
 HI<-readOGR("data/coast_n83.shp", "coast_n83") # in meters
 HI <- spTransform(HI, CRS("+proj=longlat +datum=NAD83"))
 
@@ -70,13 +71,95 @@ Reef25=c(21.461194, -157.82225)
 Reef44=c(21.476778, -157.833611)
 ```
 
-```{r Map fig, fig.height=3.7, fig.width=3.7, fig.align = 'center'}
-# Make figure and export
-#png(file= "figures/Fig1asitemap.png", height=3.5, width=3.5, units="in", res=300)
+```{r, eval=FALSE}
+# Make site map figure and export
+
+# Google now require API accounts (with billing) to run ggmap and RgoogleMaps
+# see: https://github.com/dkahle/ggmap
+# and: https://www.r-bloggers.com/geocoding-with-ggmap-and-the-google-api/
+
+# one approach is to use the packages below from open source satellite images and generate a series of tile-maps, as in ArcGIS.
+
+# see: https://github.com/MilesMcBain/slippymath
+
+library(slippymath)
+library(sf)
+library(mapview)
+library(purrr)
+library(curl)
+library(glue)
+
+# make a lat/long boundary box
+bbox =
+  st_bbox(
+    c(
+      xmin = -157.84,
+      xmax = -157.783,
+      ymin = 21.425,
+      ymax = 21.49
+    ),
+    crs = st_crs("+proj=longlat +ellps=WGS84")
+  )
+
+bb_tile_query(bbox) # what is the boundary box dimensions for a range of zooms
+
+# play with zoom and max tile # using above
+tile_grid = bb_to_tg(bbox, zoom = 15, max_tiles = 40)
+
+# pmap here will pull from the open API account and compile these, saving as 'images' and outputing them to the location in your directory.
+images <-
+  pmap(tile_grid$tiles,
+       function(x, y, zoom){
+         outfile <- glue("data/API ESRI tiles/tile_{x}_{y}.jpg")
+         curl_download(url = glue('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{zoom}/{y}/{x}'),
+        destfile = outfile)
+        outfile},
+        zoom = tile_grid$zoom)
+# you can use other websites/sources for APIs, as explained at https://github.com/MilesMcBain/slippymath
+
+library(raster)
+library(rgdal)
+raster_out <- tg_composite(tile_grid, images) # combine tiles
+raster_to_png(raster_out, "data/API ESRI tiles/KBay.png") # produce a tile png
+
+# this now gives you the site map from the satellite, but lat/long info absent and mapping GPS points not yet sorted out.
+
+#######
+###########
+############### USING GGMAP and USER-ACCOUNT API
+
+# new ggmap on github works with API account, download and restart R
+devtools::install_github("dkahle/ggmap", ref = "tidyup") 
+register_google(key = "[enter API #]") # enter user API
+
+KBay=c(-157.81225, 21.461194) # in lon/lat, sets map center
+m <- get_googlemap(center = KBay, zoom = 13 ,maptype="satellite",source="google")
+ggmap(m)
+
+# this approach works if you have set up a ggmap approach using ggplot calls.
+```
+
+```{r, echo=FALSE}
+KBay2=c(21.461194,	-157.81225)
+map <- GetMap(center = KBay2, zoom = 13, maptype = "satellite", SCALE = 2, API_console_key="AIzaSyBPQLRsZ6EgkW5hP6spsnAFNqktUTse8YM") # enter use API here
+```
+
+```{r, results='hide', message=FALSE}
+# Make site map figure and export
+
+#######
+###########
+################ Using RgoogleMaps
+
+# KBay2=c(21.461194,	-157.81225) #as lat, long
+# map <- GetMap(center = KBay2, zoom = 13, maptype = "satellite", SCALE = 2, API_console_key="[enter API here]") # enter use API here
+
+# plot and export
+png(file= "figures/Fig1a_sitemap.png", height=3.5, width=3.5, units="in", res=300)
 par(oma=c(3,3,0,0))
 
-map <- GetMap(center = KBay, zoom = 13, maptype = "satellite", SCALE = 2)
 PlotOnStaticMap(map, lat=sites$latitude, lon=sites$longitude, col="white", bg="coral", pch=21, cex=1.5)
+
 TextOnStaticMap(map, lat=sites$latitude, lon=sites$longitude, labels=c("HIMB", "Reef 25", "Reef 44"), pos=4, cex=0.6, col="white", add=TRUE)
 axis(1, at = LatLon2XY.centered(map, NA, c(-157.85, -157.81, -157.77))$newX, tcl=0.4, line = 0.4, col = "white", col.ticks = "black", lwd = 1, outer = TRUE, labels = c("157.85°W", "157.81°W", "157.77°W"), padj = -2.5, cex.axis = 0.6)
 axis(2, at = LatLon2XY.centered(map, c(21.42, 21.46, 21.50), NA)$newY, tcl=0.4, line = 0.4, col = "white", col.ticks = "black", lwd = 1, outer = TRUE, labels = c("21.42°N", "21.46°N", "21.50°N"), padj = 0.5, hadj = 0.60, las = 1, cex.axis = 0.6)
@@ -85,26 +168,33 @@ par(new=T, mar=c(10,10,0,0))
 plot(HI, xlim=c(-158.3, -157.61), ylim=c(21.27, 21.65), lwd=0.4, col="gray", bg="white")  # Oahu
 rect(-157.87, 21.39, -157.71, 21.53, lwd=0.5)
 box()
-#dev.off()
+
+dev.off() #close device and save
 ```
-**Figure 1a.** *Study site location in Kāne‘ohe Bay on the windward side of the island of O'ahu, Hawai'i*
-  
-  
 <center>
-![](figures/Fig1bc.corals.png){ width=40%} </center>
+
+![](figures/Fig1a_sitemap.png){ width=60%} 
+
+</center>
   
   
   
-  
-  
-  
-**Figure 1b-c.** Bleached and non-bleached colonies of *Montipora capitata* (top) and *Porites compressa* (bottom) during a period of thermal stress in October 2014.
+**Figure 1a.** *Study site location in Kāne‘ohe Bay on the windward side of the island of O'ahu, Hawai'i*
 
 
-  
+<center>
+
+![](figures/Fig1bc.corals.png){ width=50%} 
+
+</center>
+
+**Figure 1b-c.** Tagged bleached and non-bleached corals of *Montipora capitata* (top) and *Porites compress* (bottom)*
+
+
+
   
 ## Environmental data  
-Environmental data was collected at three site across the study period (October 2014 - January 2015). We continuously collected *temperature*, *light (PAR)* at each reef location at 2m depth. Twice monthly, *dissolved inorganic nutrients (DIN)* were collected at each reef, and *sedimentation* was determined during one month deployments at each reef at 2m depth, as well as a long term dataset spanning January 2015 - January 2016).  
+Environmental data was collected at three site across the study period (October 2014 - January 2015). We continuously collected *temperature*, *light (PAR)* at each reef location at 2m depth; *dissolved inorganic nutrients* were collected at each reef ca. twice monthly, and *sedimentation* was determined during one month deployments, as well as a long term dataset spanning January 2015 - January 2016.  
   
   
 ### Light and Temp  
@@ -291,13 +381,13 @@ dev.off()
   
   
 ### Nutrients and sedimentation
-This data is from bottled samples of Kāne'ohe Bay seawater from 11 Nov 2014 - 27 Jan 2015.   
+This data is from bottled samples of Kāne'ohe Bay seawater from 4 Nov 2014 - 4 Feb 2015.   
 Seawater (ca. 100 ml) was taken from each site and filtered through a GF/F filter and stored in acid-washed bottles and frozen at -20 °C until analyzes.  Dissolved inorganic nutrients—ammonia (NH~3~^+^), nitrate + nitrite (NO~3~^-^ + NO~2~^-^), phosphate (PO~4~^3-^), and silicate (Si(OH)~4~)—were measured at University of Hawai‘i at Mānoa SOEST Laboratory for Analytical Biogeochemistry using a Seal Analytical AA3 HR nutrient autoanalyzer and expressed as μmol l^-1^.  
   
-Rates of sedimentation at each site were measured using sediment traps (by filtered and weighing the mass of suspended particles falling into a polyvinylchloride tube (5 cm × 42 cm) capped at the base and attached to a cinder block at each reef site at a depth of 2 m. Sedimentation rates were expressed as mg sediment^-1^ d^-1^.
+Rates of sedimentation at each site were measured using sediment traps (by filtered and weighing the mass of suspended particles falling into a polyvinylchloride tube (5 cm × 42 cm) capped at the base and attached to a cinder block at each reef site at a depth of 2 m. Sedimentation rates were expressed as mg sediment d^-1^.
 
 
-```{r DIN and sedimentation data, echo=FALSE}
+```{r inorganic nutrients and sedimentation data, echo=FALSE}
 setwd('data/environmental')
 
 #### Nutrient data
@@ -428,8 +518,8 @@ There is a significant difference among sites, with less [PO~4~^3-^] at Reef 25 
 ```{r Phosphate model}
 mod.PO4<-lmer(Phosphate~Location+(1|Date), data=nutrients)
 anova(mod.PO4, type=2)
-posthoc<-lsmeans(mod.PO4, pairwise~Location)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(mod.PO4, pairwise~Location)
+CLD(posthoc, Letters=letters)
 # phosphate > HIMB and Reef 44, less at Reef 25
 ```
   
@@ -448,8 +538,8 @@ There is a significant differences among reefs with Reef 44 having greater [N+N]
 ```{r N+N model}
 mod.N.N<-lmer(N.N~Location+(1|Date), data=nutrients)
 anova(mod.N.N, type=2)
-posthoc<-lsmeans(mod.N.N, pairwise~Location)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(mod.N.N, pairwise~Location)
+CLD(posthoc, Letters=letters)
 # HIMB and Reef 25, low in N+N, Reef 44 higher
 ```
   
@@ -463,7 +553,7 @@ anova(mod.SiO, type=2)
    
    
 **Short-term sedimentation model**  
-A trend for increased sedimentation through time at Reef 44 and HIMB  
+A trend for increased sedimentation through time at Reef 44 and HIMB.  
 ```{r short term sed. model}
 mod.sed<-lmer(sedim..g.d~Location+(1|Time.point), data=sed)
 anova(mod.sed, type=2)
@@ -472,20 +562,20 @@ anova(mod.sed, type=2)
   
   
 **Long-term sedimentation model and post-hoc**  
-
-Over a longer sampling interval, there is a significant effect of Site, but a post-hoc shows this may only be a weak trend, although it is in agreement with short-term data. Overall, there is a long-term effect for 2x more sedimentation at Reef 44 and HIMB compared to Reef 25
+  
+Over a longer sampling interval, there is a significant effect of Site, but a post-hoc shows this may only be a weak trend, although it is in agreement with short-term data. Overall, there is a long-term effect for 2x more sedimentation at Reef 44 and HIMB compared to Reef 25.
 ```{r long term. sed model}
 mod.sed.year<-lmer(sedim..g.d~Location+(1|Time.point), data=sed.year)
 anova(mod.sed.year, type=2)
-posthoc<-(lsmeans(mod.sed.year, pairwise~Location))
-cld(posthoc, Letters=letters)
+posthoc<-(emmeans(mod.sed.year, pairwise~Location))
+CLD(posthoc, Letters=letters)
 ```
   
   
 ####Models  
 
 **PAR model and post-hoc**
-A statistical **difference** in DLI/PAR among two reef sites (HIMB > Reef 44); data logger lost at Reef 25. Overall, HIMB PAR (DLI) on average is 4.5 mol photons m^-2^ d^-1^ greater than Reef 44  
+A statistical **difference** in DLI/PAR among two reef sites (HIMB > Reef 44); data logger lost at Reef 25. Overall, HIMB PAR (DLI) on average is 4.5 mol photons m^-2^ d^-1^ greater than Reef 44.  
   
 ```{r PAR model}
 Par.diff<-mean(df.dli$HIMB.DLI)-mean(df.dli$R44.DLI)
@@ -498,12 +588,16 @@ PAR.mod.df<-bind_rows(R44, HIMB)
 mod.PAR<-lmer(PAR~Location+(1|Date), data=PAR.mod.df)
 anova(mod.PAR, type=2)
 
-posthoc<-lsmeans(mod.PAR, pairwise~Location)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(mod.PAR, pairwise~Location)
+CLD(posthoc, Letters=letters)
 
 ```
 
 **Temperature model and post-hoc**  
+  
+Overall there are no significant differences among temperatures (daily mean, min., max.) at the sites where loggers were maintained (Reef 44 and HIMB). Differences in temperature were small and below logger resolution/accuracy.
+  
+
 *daily mean temperature*
 ```{r daily temp mean}
 #### using temp means
@@ -515,8 +609,8 @@ Temp.mod.mean.df<-bind_rows(R44, HIMB)
 mod.mean.Temp<-lmer(temp~Location+(1|Date), data=Temp.mod.mean.df)
 anova(mod.mean.Temp, type=2)
 
-posthoc<-lsmeans(mod.mean.Temp, pairwise~Location)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(mod.mean.Temp, pairwise~Location)
+CLD(posthoc, Letters=letters)
 ```
   
 *daily maximum temperature*
@@ -530,8 +624,8 @@ Temp.mod.max.df<-bind_rows(R44, HIMB)
 mod.max.Temp<-lmer(temp~Location+(1|Date), data=Temp.mod.max.df)
 anova(mod.max.Temp, type=2)
 
-posthoc<-lsmeans(mod.max.Temp, pairwise~Location)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(mod.max.Temp, pairwise~Location)
+CLD(posthoc, Letters=letters)
 ```
   
 *daily minimum temperature*
@@ -546,8 +640,9 @@ mod.min.Temp<-lmer(temp~Location+(1|Date), data=Temp.mod.min.df)
 anova(mod.min.Temp, type=2)
 ```
   
+  
 ## Biological metrics  
-Here is the data for **Three Sites** (north to south: Reef 44, Reef 25, HIMB),  **Two Periods** (October 2014 and January 2015), in two reef coral species (*Montipora capitata* and *Porites compressa*).  
+Here is the data for **Three Sites** (north to south: Reef 44, Reef 25, HIMB),  **Two Periods** (October 2014 Bleaching and January 2015 Recovery), in two reef coral species (*Montipora capitata* and *Porites compressa*).  
   
 ```{r, message=FALSE, results='hide'}
 # First, response variables (*physiology*) need to be normalized, as the dataframe now shows all metrics as "per milliliter of tissue slurry". Normalize the data first, then subset the dataframe for physiological response variables. Finally, a separate dataframe will be generated for isotopic data.
@@ -861,7 +956,7 @@ abline(v = 0, lty = "dotted")
 points(NMDS.plot, "sites", pch=NMDS.symbols, cex=1, col="black", bg=MDS.colors)
 with(NMDS.plot, points(NMDS.mean[,2], NMDS.mean[,3], pch=4))
 ordiellipse(NMDS.plot, groups=NMDS.df$Condition, draw="polygon", col=MDS.colors, label=F, alpha=150, kind="se", conf=0.95)
-legend("topright", legend=MDS.levels, pch=NMDS.symbols, col="black", inset=c(0.18, -0.1), cex=0.9, pt.bg=MDS.colors, pt.cex=1, bty="n", x.intersp = 1, y.intersp = 1.6)
+legend("topright", legend=MDS.levels, pch=NMDS.symbols, col="black", inset=c(0.18, 0.0), cex=0.9, pt.bg=MDS.colors, pt.cex=1, bty="n", x.intersp = 1, y.intersp = 1.6)
 par.new=T
 plot(vars, p.max=0.05, cex=0.8, lwd=1)
 
@@ -1019,7 +1114,7 @@ abline(v = 0, lty = "dotted")
 points(NMDS.plot, "sites", pch=NMDS.symbols, cex=1, col="black", bg=MDS.colors)
 with(NMDS.plot, points(NMDS.mean[,2], NMDS.mean[,3], pch=4))
 ordiellipse(NMDS.plot, groups=NMDS.df$Condition, draw="polygon", col=MDS.colors, label=F, alpha=150, kind="se", conf=0.95)
-legend("topright", legend=MDS.levels, pch=NMDS.symbols, col="black", inset=c(0.18, -0.1), cex=0.9, pt.bg=MDS.colors, pt.cex=1, bty="n", x.intersp = 1, y.intersp = 1.6)
+legend("topright", legend=MDS.levels, pch=NMDS.symbols, col="black", inset=c(0.18, 0.0), cex=0.9, pt.bg=MDS.colors, pt.cex=1, bty="n", x.intersp = 1, y.intersp = 1.6)
 par.new=T
 plot(vars, p.max=0.05, cex=0.8, lwd=1)
 
@@ -1099,9 +1194,9 @@ Here, each response variable is now analyzed in a linear mixed effect model. For
   
 Linear mixed effect models are run with all fixed effects (*Period, Site, Condition*) and the repeated sampling of individuals is accounted for using coral ID (*Sample ID*) and colony pairs (*Pairs*) as a random effects. This model is labeled as: **full.test**. This model is fit with *restricted maximum likelihood (REML)*. Inspect the output and identify interactive effects that can be dropped. Next, compare models with different fixed effect.  
   
-- *Model Selection* After fitting the first model (*full*), compare to a reduced model where non-significant interactive terms have been dropped. This model is labeled: **add**. To compare models, the full model must be refit using maximum likelihood, set by *REML=FALSE*, in order to compare models with different fixed effects. This re-fit ML-model-- for comparison only-- is called: **full**.  With both models fit by maximum likelihood, use likelihood ratio tests and compare the two models and see if there is reduced model (e.g., *add*) differs from full model. If not (P> 0.15, since chi-square is usually inflated), drop non-significant effects and proceed with the best model.  
+- *Model Selection* After fitting the first model (*full*), compare to a reduced model where non-significant interactive terms have been dropped. This model is labeled: **add**. To compare models, the full model must be refit using maximum likelihood, set by *REML=FALSE*, in order to compare models with different fixed effects. This re-fit ML-model-- for comparison only-- is called: **full**.  With both models fit by maximum likelihood, use likelihood ratio tests and compare the two models and see if there is reduced model (e.g., *add*) differs from full model. If not (P > 0.15, since chi-square is usually inflated), drop non-significant effects and proceed with the best model.  
   
-- *Fit Final Model*  Run the best model with end tag **xxx.mod.FINAL**, *fit with REML*, generate ANVOA table (Type II SS), and run posthoc test (lsmeans) where necessary. Posthoc tests should be run  as 'slices', where a comparison is made among groups and primary effects tested.  
+- *Fit Final Model*  Run the best model with end tag **xxx.mod.FINAL**, *fit with REML*, generate ANVOA table (Type II SS), and run posthoc test (emmeans) where necessary. Posthoc tests should be run  as 'slices', where a comparison is made among groups and primary effects tested.  
   
 Output from these models can be found summarized in **Tables 1, S4 (MC physiology), S5 (PC physiology)**.
   
@@ -1167,8 +1262,8 @@ Chl.mod.FINAL<-lmer(chl~Period+Site+Condition+Period:Condition+(1|Sample.ID)+(1|
 
 # ANOVA table
 anova(Chl.mod.FINAL, type=2)
-posthoc<-lsmeans(Chl.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(Chl.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(Chl.mod.FINAL), ylab="total chlorophyll ug/cm2")
 
@@ -1201,10 +1296,10 @@ AFDW.mod.FINAL<-lmer(biomass~Period+Site+Condition+Period:Condition+(1|Sample.ID
 
 # ANOVA table
 print(anova(AFDW.mod.FINAL, type=2), digits=6)
-posthoc<-lsmeans(AFDW.mod.FINAL, pairwise~Condition|Period)
+posthoc<-emmeans(AFDW.mod.FINAL, pairwise~Condition|Period)
 
 
-cld(posthoc, Letters=letters); 
+CLD(posthoc, Letters=letters); 
 # Bleaching period: B < NB (a vs. b)
 # Recovery period: B = NB (a vs a)
 
@@ -1237,8 +1332,8 @@ Prot.gdw.mod.FINAL<-lmer(prot~Period+Site+Condition+(1|Sample.ID)+(1|Pair), data
 anova(Prot.gdw.mod.FINAL, type=2)
 # rand(Prot.gdw.mod.FINAL)
 
-posthoc<-lsmeans(Prot.gdw.mod.FINAL, pairwise~Period)
-cld(posthoc, Letters=letters);
+posthoc<-emmeans(Prot.gdw.mod.FINAL, pairwise~Period)
+CLD(posthoc, Letters=letters);
 
 plot(allEffects(Prot.gdw.mod.FINAL), ylab="M. capitata protein/gdw")
 ```
@@ -1379,11 +1474,11 @@ PC.tot.chl.mod.FINAL<-lmer(chl~Period*Site*Condition+(1|Sample.ID)+(1|Pair), dat
 print(anova(PC.tot.chl.mod.FINAL, type=2), digits =6)
 # rand(PC.tot.chl.mod.FINAL)
 
-posthoc<-lsmeans(PC.tot.chl.mod.FINAL, pairwise~Condition|Period:Site)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.tot.chl.mod.FINAL, pairwise~Condition|Period:Site)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.tot.chl.mod.FINAL, pairwise~Condition|Site)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.tot.chl.mod.FINAL, pairwise~Condition|Site)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.tot.chl.mod.FINAL), ylab="P. compressa chl ug/cm2")
 
@@ -1417,8 +1512,8 @@ PC.AFDW.mod<-lmer(biomass~Period+Site+Condition+(1|Sample.ID)+(1|Pair), data=phy
 print(anova(PC.AFDW.mod, type=2), digits=6)
 # rand(PC.AFDW.mod)
 
-posthoc<-lsmeans(PC.AFDW.mod, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.AFDW.mod, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 # @ Bleaching: B < NB, but @ Recovery B = NB
 
 plot(allEffects(PC.AFDW.mod), ylab="P. compressa AFDW mg/cm2")
@@ -1451,8 +1546,8 @@ PC.prot.mod.FINAL<-lmer(prot~Period+Site+Condition+Period:Condition+(1|Sample.ID
 anova(PC.prot.mod.FINAL, type=2)
 # rand(PC.prot.mod.FINAL)
 
-posthoc<-lsmeans(PC.prot.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.prot.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.prot.mod.FINAL), ylab="P. compressa protein/gdw")
 
@@ -1484,8 +1579,8 @@ PC.lipids.mod.FINAL<-lmer(lipid~Period+Site+Condition+Period:Site+(1|Sample.ID)+
 anova(PC.lipids.mod.FINAL, type=2)
 # rand(PC.lipids.mod.FINAL)
 
-posthoc<-lsmeans(PC.lipids.mod.FINAL, pairwise~Site|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.lipids.mod.FINAL, pairwise~Site|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.lipids.mod.FINAL), ylab="P. compressa lipids/gdw")
 
@@ -1547,8 +1642,8 @@ PC.kJ.mod.FINAL<-lmer(kJ~Period+Site+Condition+Period:Site+(1|Sample.ID)+(1|Pair
 anova(PC.kJ.mod.FINAL, type=2)
 # rand(PC.kJ.mod.FINAL)
 
-posthoc<-lsmeans(PC.kJ.mod.FINAL, pairwise~Site|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.kJ.mod.FINAL, pairwise~Site|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.kJ.mod.FINAL), ylab="P. compressa kJ/gdw")
 
@@ -1557,18 +1652,13 @@ plot(allEffects(PC.kJ.mod.FINAL), ylab="P. compressa kJ/gdw")
 
 
 #### Physiology Figures
-Physiology figures are mean +/-SE.  *Montipora capitata* is on the left, *Porites compressa* on the right.
-  
 ```{r, echo=FALSE}
 df.MC<-df.summary[(df.summary$Species=="MC"),] # MC dataframe only, untransformed
 df.PC<-df.summary[(df.summary$Species=="PC"),] # PC dataframe only, untransformed
 ```
   
 Figures shown here are total chlorophyll, total biomass and found in **Figure 5**  
-  
-**Legend: *Montipora capitata* (left) and *Porites compressa* (right)**
-
-```{r, fig.align="center", message=FALSE, results='hide', fig.width=8}
+```{r, fig.align="center", message=FALSE, results='hide', fig.width=8, fig.cap="**Figure 5.** *Physiology figures are mean +/-SE with  *Montipora capitata*  on the left, *Porites compressa* on the right*."}
 # below is for x-axis labels
 Period.Reef<-paste(expression("R44\nBleaching", "R25\nBleaching", "HIMB\nBleaching", "R44\nRecovery", "R25\nRecovery", "HIMB\nRecovery")) 
 
@@ -1778,11 +1868,8 @@ plot_grid(Fig.MC.chl, Fig.PC.chl,
           labels = c("a", "b", "c", "d"), ncol = 2)
 ```
   
-Figures here are for biomass composition/energy reserves and are total proteins, lipids, carbohydrates, and energy content. These figures can be found in manuscript **Figure 6**.  
-  
-**Legend: *Montipora capitata* (left) and *Porites compressa* (right)**
-
-```{r Biomass figures}
+Figures here are for biomass composition/energy reserves and are total proteins, lipids, carbohydrates, and energy content. These figures can be found in manuscript **Figure 6**.
+```{r Biomass figures, fig.width=8, fig.cap="**Figure 6.** *Physiology figures are mean +/-SE with  *Montipora capitata*  on the left, *Porites compressa* on the right*"}
 plot_grid(Fig.MC.prot.gdw, Fig.PC.prot.gdw, 
           Fig.MC.lipid, Fig.PC.lipid, 
           labels = c("a", "b", "c", "d"), ncol = 2
@@ -1798,7 +1885,7 @@ plot_grid(Fig.MC.carbs, Fig.PC.carbs,
   
    
 ##Stable isotopes
-Isotope measurements are for isolated coral host and algal symbiont (*Symbiodinium* spp.) tissues.  Carbon (δ^13^C) and nitrogen (δ^15^N) isotopic values and molar ratios of carbon:nitrogen (C:N) for coral host (δ^13^C~H~, δ^15^N~H~, C:N~H~) and algal symbiont (δ^13^C~S~, δ^15^N~S~, C:N~S~) tissues were determined with a Costech elemental combustion system coupled to a Thermo-Finnigan Delta Plus XP Isotope Ratio Mass-Spectrometer.  Isotopic data are reported in delta values (δ) using the conventional permil (‰) notation and expressed relative to Vienna Pee-Dee Belemnite (V-PBD) and atmospheric N~2~ standards (air) for carbon and nitrogen, respectively.  
+Isotope measurements are for isolated coral host and algal symbiont (Symbiodiniaceae) tissues.  Carbon (δ^13^C) and nitrogen (δ^15^N) isotopic values and molar ratios of carbon:nitrogen (C:N) for coral host (δ^13^C~H~, δ^15^N~H~, C:N~H~) and algal symbiont (δ^13^C~S~, δ^15^N~S~, C:N~S~) tissues were determined with a Costech elemental combustion system coupled to a Thermo-Finnigan Delta Plus XP Isotope Ratio Mass-Spectrometer.  Isotopic data are reported in delta values (δ) using the conventional permil (‰) notation and expressed relative to Vienna Pee-Dee Belemnite (V-PBD) and atmospheric N~2~ standards (air) for carbon and nitrogen, respectively.  
   
 Linear mixed effect models and anlaysis are separated by Species.  First showing carbon, then nitrogen for animal and symbiont tissues in *Montipora capitata* followed by *Porites compressa* 
 
@@ -1930,8 +2017,8 @@ MC.host.d13C.mod.FINAL<-lmer(host.d13C~Period+Site+Condition+(1|Sample.ID)+(1|Pa
 anova(MC.host.d13C.mod.FINAL, type=2)
 # rand(MC.host.d13C.mod.FINAL)
 
-posthoc<-lsmeans(MC.host.d13C.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.host.d13C.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(MC.host.d13C.mod.FINAL), ylab="Mcap host d13C")
 ```
@@ -1962,8 +2049,8 @@ MC.symb.d13C.mod.FINAL<-lmer(symb.d13C~Period+Site+Condition+(1|Sample.ID)+(1|Pa
 anova(MC.symb.d13C.mod.FINAL, type=2)
 # rand(MC.symb.d13C.mod.FINAL)
 
-posthoc<-lsmeans(MC.symb.d13C.mod.FINAL, pairwise~Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.symb.d13C.mod.FINAL, pairwise~Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(MC.symb.d13C.mod.FINAL), ylab="Mcap symb d13C")
 ```
@@ -2007,11 +2094,11 @@ MC.d13C.H.S.mod.FINAL<-lmer(d13C.H.S~Period+Site+Condition+(1|Sample.ID)+(1|Pair
 anova(MC.d13C.H.S.mod.FINAL, type=2)
 # rand(MC.d13C.H.S.mod.FINAL)
 
-posthoc<-lsmeans(MC.d13C.H.S.mod.FINAL, pairwise~Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.d13C.H.S.mod.FINAL, pairwise~Period)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(MC.d13C.H.S.mod.FINAL, pairwise~Condition)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.d13C.H.S.mod.FINAL, pairwise~Condition)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(MC.d13C.H.S.mod.FINAL), ylab="Mcap d13C H-S")
 ```
@@ -2043,8 +2130,8 @@ MC.host.d15N.mod.FINAL<-lmer(host.d15N~Period+Site+Condition+(1|Sample.ID)+(1|Pa
 anova(MC.host.d15N.mod.FINAL, type=2)
 # rand(MC.host.d15N.mod.FINAL)
 
-posthoc<-lsmeans(MC.host.d15N.mod.FINAL, pairwise~Site)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.host.d15N.mod.FINAL, pairwise~Site)
+CLD(posthoc, Letters=letters)
 
 
 plot(allEffects(MC.host.d15N.mod.FINAL), ylab="Mcap host d15N")
@@ -2138,11 +2225,11 @@ MC.host.CN.mod.FINAL<-lmer(host.C.N~Period+Site+Condition+Period:Site+Period:Con
 anova(MC.host.CN.mod.FINAL, type=2)
 # rand(MC.host.CN.mod.FINAL)
 
-posthoc<-lsmeans(MC.host.CN.mod.FINAL, pairwise~Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.host.CN.mod.FINAL, pairwise~Period)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(MC.host.CN.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(MC.host.CN.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(MC.host.CN.mod.FINAL), ylab="Mcap host C:N")
 ```
@@ -2222,11 +2309,11 @@ PC.host.d13C.mod.FINAL<-lmer(host.d13C~Period*Site*Condition+(1|Sample.ID)+(1|Pa
 anova(PC.host.d13C.mod.FINAL, type=2)
 # rand(PC.host.d13C.mod.FINAL)
 
-posthoc<-lsmeans(PC.host.d13C.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.d13C.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.host.d13C.mod.FINAL, pairwise~Condition|Period/Site)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.d13C.mod.FINAL, pairwise~Condition|Period/Site)
+CLD(posthoc, Letters=letters)
 
 
 plot(allEffects(PC.host.d13C.mod.FINAL), ylab="Pcom host.d13C")
@@ -2258,8 +2345,8 @@ PC.symb.d13C.mod.FINAL<-lmer(symb.d13C~Period+Site+Condition+Period:Condition+(1
 anova(PC.symb.d13C.mod.FINAL, type=2)
 # rand(PC.symb.d13C.mod.FINAL)
 
-posthoc<-lsmeans(PC.symb.d13C.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.symb.d13C.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.symb.d13C.mod.FINAL), ylab="Pcom symb d13C")
 ```
@@ -2320,14 +2407,14 @@ PC.host.d15N.mod.FINAL<-lmer(host.d15N~Period+Site+Condition+Period:Condition+(1
 anova(PC.host.d15N.mod.FINAL, type=2)
 # rand(PC.host.d15N.mod.FINAL)
 
-posthoc<-lsmeans(PC.host.d15N.mod.FINAL, pairwise~Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.d15N.mod.FINAL, pairwise~Period)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.host.d15N.mod.FINAL, pairwise~Site)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.d15N.mod.FINAL, pairwise~Site)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.host.d15N.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.d15N.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.host.d15N.mod.FINAL), ylab="Pcom host.d15N")
 ```
@@ -2358,11 +2445,11 @@ PC.symb.d15N.mod.FINAL<-lmer(symb.d15N~Period+Site+Condition+Period:Condition+(1
 anova(PC.symb.d15N.mod.FINAL, type=2)
 # rand(PC.symb.d15N.mod.FINAL)
 
-posthoc<-lsmeans(PC.symb.d15N.mod.FINAL, pairwise~Site)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.symb.d15N.mod.FINAL, pairwise~Site)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.symb.d15N.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.symb.d15N.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.symb.d15N.mod.FINAL), ylab="Pcom symb d15N")
 ```
@@ -2393,8 +2480,8 @@ PC.d15N.H.S.mod.FINAL<-lmer(d15N.H.S~Period+Site+Condition+Period:Condition+(1|S
 anova(PC.d15N.H.S.mod.FINAL, type=2)
 # rand(PC.d15N.H.S.mod.FINAL)
 
-posthoc<-lsmeans(PC.d15N.H.S.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.d15N.H.S.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.d15N.H.S.mod.FINAL), ylab="Pcom symb d15N.H-S")
 ```
@@ -2426,14 +2513,14 @@ PC.host.C.N.mod.FINAL<-lmer(host.C.N~Period+Site+Condition+Period:Site+Period:Co
 anova(PC.host.C.N.mod.FINAL, type=2)
 # rand(PC.host.C.N.mod.FINAL)
 
-posthoc<-lsmeans(PC.host.C.N.mod.FINAL, pairwise~Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.C.N.mod.FINAL, pairwise~Period)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.host.C.N.mod.FINAL, pairwise~Site|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.C.N.mod.FINAL, pairwise~Site|Period)
+CLD(posthoc, Letters=letters)
 
-posthoc<-lsmeans(PC.host.C.N.mod.FINAL, pairwise~Condition|Period)
-cld(posthoc, Letters=letters)
+posthoc<-emmeans(PC.host.C.N.mod.FINAL, pairwise~Condition|Period)
+CLD(posthoc, Letters=letters)
 
 plot(allEffects(PC.host.C.N.mod.FINAL), ylab="Pcom host.C.N")
 ```
@@ -2470,9 +2557,8 @@ plot(allEffects(PC.symb.C.N.mod.FINAL), ylab="Pcom symb C:N")
 ### Isotope figures
 Figures here are for: δ^13^C~Host~, δ^13^C~Symb~, δ^15^N~Host~, δ^15^N~Symb~, δ^13^C~Host-Symb~, δ^15^N~Host-Symb~, C:N~Host~, C:N~Symb~.  
   
-These figures together make up **Figure 7** (isotope data, both species).  
-**Legend: Montipora capitata (left) and *Porites compressa* (right)**
-```{r, warning=FALSE, message=FALSE, results='hide'}
+These figures together make up **Figure 7** (isotope data, both species). Isotope figures are mean +/-SE with  *Montipora capitata*  on the left, *Porites compressa* on the right.
+```{r, warning=FALSE, message=FALSE, results='hide', fig.width=8}
 # isotope summaries by species
 MC.iso<-iso.summary[(iso.summary$Species=='MC'),] # MC isotopes
 PC.iso<-iso.summary[(iso.summary$Species=='PC'),] # PC isotopes
@@ -2759,9 +2845,8 @@ plot_grid(Fig.MC.iso.symb.d15N, Fig.PC.iso.symb.d15N,
 ```
   
 Next batch of figures are for molar concentrations of carbon and nitrogen in host and symbionts.  
-**Figure S2** (C:N host and symbiont, both species).  
-**Legend: Montipora capitata (left) and *Porites compressa* (right)**
-```{r CN figs}
+**Figure S2** (C:N host and symbiont, both species). C:N molar ratios are mean +/-SE with  *Montipora capitata*  on the left, *Porites compressa* on the right.
+```{r CN figs, fig.width=8}
 plot_grid(Fig.MC.iso.hostCN, Fig.PC.iso.hostCN,
           Fig.MC.iso.symbCN, Fig.PC.iso.symbCN,
           labels = c("a", "b", "c", "d"), ncol = 2, axis="lr")
@@ -2845,19 +2930,19 @@ legend("topleft", legend=c("lipids", "proteins", "carbs"), col=c("coral", "dodge
 
 par(new=T) #nonbleached lipid
 points(d13C.lip~dC.holobiont, data=Mdf.MC.nb, type="p", pch=16, cex=0.5, col='coral') 
-abline(lm(d13C.lip~dC.holobiont, data=Mass.df), col="coral"); par(new=T)
+ablineclip(lm(d13C.lip~dC.holobiont, data=Mass.df),x1=min(Mass.df$dC.holobiont), x2=max(Mass.df$dC.holobiont), col="coral"); par(new=T)
 
 #bleached protein
 points(d13C.prot~dC.holobiont, data=Mdf.MC.bl, pch=1, cex=0.5, col='dodgerblue'); par(new=T)
 #nonbleached protein
 points(d13C.prot~dC.holobiont, data=Mdf.MC.nb, pch=16, cex=0.5, col='dodgerblue')
-abline(lm(d13C.prot~dC.holobiont, data=Mass.df), col="dodgerblue"); par(new=T)
+ablineclip(lm(d13C.prot~dC.holobiont, data=Mass.df), x1=min(Mass.df$dC.holobiont), x2=max(Mass.df$dC.holobiont), col="dodgerblue"); par(new=T)
 
 #bleached carbs
 points(d13C.carb~dC.holobiont, data=Mdf.MC.bl, pch=1, cex=0.5, col='forestgreen'); par(new=T)
 #nobleached carbs
 points(d13C.carb~dC.holobiont, data=Mdf.MC.nb, pch=16, cex=0.5, col='forestgreen')
-abline(lm(d13C.carb~dC.holobiont, data=Mass.df), col="forestgreen"); par(new=T)
+ablineclip(lm(d13C.carb~dC.holobiont, data=Mass.df), x1=min(Mass.df$dC.holobiont), x2=max(Mass.df$dC.holobiont), col="forestgreen"); par(new=T)
 
 # Porites
 points(d13C.lip~dC.holobiont, data=Mdf.PC.bl, pch=2, cex=0.5, col='coral'); par(new=T)
@@ -2872,6 +2957,7 @@ legend("topright", legend=c("Montipora", "Porites"), col=c("black", "black"), pc
 
 
 ```
+
 ```{r d13C observe expect, include=TRUE, results="hide", fig.width=5, fig.height=4, fig.align='center'}
 ####################
 ####################
@@ -2911,8 +2997,10 @@ par(mfrow=c(1,1),mar=c(5,4.5,2,1))
 plot(d13C.theor~dC.holobiont, data=MCcalc.df, type="p", pch=16, cex=0.7, col='black', ylim=c(-20, -12), xlim=c(-20, -12), ylab=expression(paste("expected ", delta^{13}, C[Holobiont], " (\u2030, V-PDB)")), xlab=expression(paste("observed ", delta^{13}, C[Holobiont], " (\u2030, V-PDB)")), main="Observed vs. Expected d13C-Holobiont", cex.main=0.8)
 par(new=T)
 points(d13C.theor~dC.holobiont, data=PCcalc.df, type="p", pch=17, cex=0.7, col='gray60')
-abline(lm(d13C.theor~dC.holobiont, data=MCcalc.df), col="black", lty=1)
-abline(lm(d13C.theor~dC.holobiont, data=PCcalc.df), col="gray60", lty=2)
+ablineclip(lm(d13C.theor~dC.holobiont, data=MCcalc.df), col="black",
+           x1=min(MCcalc.df$dC.holobiont), x2=max(MCcalc.df$dC.holobiont), lty=1)
+ablineclip(lm(d13C.theor~dC.holobiont, data=PCcalc.df), col="gray60", 
+           x1=min(PCcalc.df$dC.holobiont), x2=max(PCcalc.df$dC.holobiont), lty=2)
 legend("topleft", legend=c("M. capitata", "P. compressa"), col=c("black", "gray60"), pch=16, lty=c(1,2), y.intersp=0.9, cex=0.9, bty="n")
 text(-15, -20, "Mcap: R2=0.88, Pcom: R2=0.56, p<0.001", cex=0.8) #add in model output
 ############
