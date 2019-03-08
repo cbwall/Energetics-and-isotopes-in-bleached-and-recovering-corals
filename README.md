@@ -1,6 +1,6 @@
 # Energetics and isotopes in bleached and recovering corals 
-.. image:: https://zenodo.org/badge/148847554.svg
-   :target: https://zenodo.org/badge/latestdoi/148847554
+https://zenodo.org/badge/148847554.svg
+
 Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography (in press).
 
 This project assessed the energetic and isotopic changes in bleached and non-bleached colonies of two Hawaiian reef coral species at three reef sites in Kāne'ohe Bay, Hawai'i, following a rare archipelagic bleaching event in October 2014 and the subsequent recovery from bleaching in January 2015.
