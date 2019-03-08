@@ -1,15 +1,19 @@
 # Energetics and isotopes in bleached and recovering corals
-This project assessed the energetic and isotopic changes in bleached and non-bleached colonies of two Hawaiian reef coral species at three reef sites in Kāne'ohe Bay, Hawai'i, following a rare archipelagic bleaching event in October 2014 and the subsequent recovery from bleaching in January 2015.
+Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography (in press).
 
+This project assessed the energetic and isotopic changes in bleached and non-bleached colonies of two Hawaiian reef coral species at three reef sites in Kāne'ohe Bay, Hawai'i, following a rare archipelagic bleaching event in October 2014 and the subsequent recovery from bleaching in January 2015.
 
 ## Files and Folders
 - Bleach.Recovery.Isotope.Rproj -- the R project in Rstudio
-- Wall et al.LnOmarkdown.Rmd -- the codes and script in Rmarkdown file
+- Wall et al_LnO_markdown_publish.Rmd -- the codes and script in Rmarkdown file
+- Wall_et_al_LnO_markdown_publish.html -- this is the html export from Rmd
 
 ### data
 - Biological responses_BNB.final -- the biological properties of all corals
+#### API ESRI tiles
+- ESRI tiles to make a DIY map without Google API
 #### coastn83.shp 
-- shape files to generate map
+- shape files to generate map -- NOTE need user Google API account as of 2019
 #### environmental
 - abiotic data
      - KBay_temp_1612480_20140601-20150228_phys.csv -- weather station temperature data
