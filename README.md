@@ -12,7 +12,7 @@ This project assessed the energetic and isotopic changes in bleached and non-ble
 - Biological responses_BNB.final -- the biological properties of all corals. 
   _Metadata for this file can be found in Rmd file and below_. 
      - 'Time.point' -- 2014 October or 2015 January
-     - 'Period' -- either Bleaching or Recover
+     - 'Period' -- either Bleaching or Recovery
      - 'Site' -- 3 sites HIMB (Hawai'i Institute of Marine Biology), Reef 25, and Reef 44
      - 'Species' -- MC = _Montipora capitata_, or PC = _Porites compressa_
      - 'Condition' -- B = Bleached, NB = Non-bleached
