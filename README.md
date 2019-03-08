@@ -1,5 +1,6 @@
 # Energetics and isotopes in bleached and recovering corals 
-https://zenodo.org/badge/148847554.svg
+<a href="https://zenodo.org/badge/latestdoi/148847554"><img src="https://zenodo.org/badge/148847554.svg" alt="DOI"></a>
+
 
 Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography (in press).
 
