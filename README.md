@@ -2,7 +2,8 @@
 <a href="https://zenodo.org/badge/latestdoi/148847554"><img src="https://zenodo.org/badge/148847554.svg" alt="DOI"></a>
 
 
-Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography (in press).
+Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography 64(5): 2011-2028 (https://doi.org/10.1002/lno.11166).
+*an update has been made to the code following a Corrigendum related to coloring of points in NMDS plots. Conclusion of analyses were unchanged: https://doi.org/10.1002/lno.11662*
 
 This project assessed the energetic and isotopic changes in bleached and non-bleached colonies of two Hawaiian reef coral species at three reef sites in Kāne'ohe Bay, Hawai'i, following a rare archipelagic bleaching event in October 2014 and the subsequent recovery from bleaching in January 2015.
 
@@ -78,12 +79,12 @@ These figures are exports from Rmarkdown (Fig 1, 3) and images of bleached and n
 Figures here are exported from Rmd and used in publication with minor edits in Illustrator
 - Fig 1. Map and corals.pdf
 - Fig 2 Nutrients.pdf
-- Fig 3. NMDS_MCpdf
-- Fig 4. NMDS_PCpdf
-- Fig 5. MC.PC.chlapdf
-- Fig 6. Energy reservespdf
-- Fig 7. MC.PC.fig.isotopespdf
-- Fig 8. Mass balance d13Cpdf
-- Fig S1. Temp.PAR.colorpdf
-- Fig S2. C.N hostsymbpdf
+- Fig 3. NMDS_MC.pdf
+- Fig 4. NMDS_PC.pdf
+- Fig 5. MC.PC.chla.pdf
+- Fig 6. Energy reserves.pdf
+- Fig 7. MC.PC.fig.isotopes.pdf
+- Fig 8. Mass balance d13C.pdf
+- Fig S1. Temp.PAR.color.pdf
+- Fig S2. C.N hostsymb.pdf
 - Fig S3. Compound to d13C.pdf
