@@ -2,8 +2,9 @@
 <a href="https://zenodo.org/badge/latestdoi/148847554"><img src="https://zenodo.org/badge/148847554.svg" alt="DOI"></a>
 
 
-Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography 64(5): 2011-2028 (https://doi.org/10.1002/lno.11166).
-*an update has been made to the code following a Corrigendum related to coloring of points in NMDS plots. Conclusion of analyses were unchanged: https://doi.org/10.1002/lno.11662*
+Wall C.B., Ritson-Williams R., Popp B.N., and Gates R.D. (2019) Spatial variation in the biochemical and isotopic composition of corals during bleaching and recovery. Limnology and Oceanography 64(5): 2011-2028 (https://doi.org/10.1002/lno.11166).  
+
+*An update has been made to the code following a Corrigendum related to coloring of points in NMDS plots. Conclusion of analyses were unchanged: https://doi.org/10.1002/lno.11662*
 
 This project assessed the energetic and isotopic changes in bleached and non-bleached colonies of two Hawaiian reef coral species at three reef sites in Kāne'ohe Bay, Hawai'i, following a rare archipelagic bleaching event in October 2014 and the subsequent recovery from bleaching in January 2015.
 
